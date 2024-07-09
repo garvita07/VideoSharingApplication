@@ -4,11 +4,13 @@ import multer from "multer";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "../public");
+    cb(null, "./public/temp");
   },
   filename: function (req, file, cb) {
-    cb(null, files.originalname); //multer doesnt provide the filetype in the name from its side.
+    cb(null, file.originalname); //multer doesnt provide the filetype in the name from its side.
   },
 });
 
-const upload = multer({ storage /* storage: storage */ });
+const upload = multer({ storage, /* storage: storage */ });
+
+export default upload;

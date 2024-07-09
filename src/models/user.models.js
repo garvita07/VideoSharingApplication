@@ -7,18 +7,13 @@ import bcrypt from "bcrypt";
 // It is basically the dbdiagrams that we design.
 const userSchema = new Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     email: {
       type: String,
       required: true,
       trim: true,
       lowercase: true,
     },
-    userName: {
+    username: {
       type: String,
       required: true,
       trim: true,
@@ -53,6 +48,9 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
+    accessToken: {
+      type: String,
+    }
   },
   { timestamps: true }
 );
@@ -60,7 +58,7 @@ const userSchema = new Schema(
 // We use name of the Schema to use middlewares and hooks(same thing). <--IMPORTANT
 userSchema.pre("save", async function (next) {
   //we dont use arrow functions because we need the context ie, this.
-  if (this.modified("password")) {
+  if (this.isModified("password")) {
     this.password = bcrypt.hash(this.password, 10);
   }
   next();

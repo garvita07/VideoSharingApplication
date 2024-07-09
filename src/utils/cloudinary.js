@@ -11,21 +11,20 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET_KEY,
 });
 
-const uploadOnCloudinary = async function () {
+const uploadOnCloudinary = async function (localFilePath) {
   try {
     //localFilePath -> on our server.
     if (localFilePath) {
       const response = await cloudinary.uploader.upload(localFilePath, {
         resource_type: "auto",
       });
-      console.log(response.url);
+      fs.unlinkSync(localFilePath);
       return response;
     } else return null;
   } catch (error) {
     fs.unlinkSync(localFilePath); // here, we will deleting/unlinking our locally saved file as the operation has failed.
-    //By 'Sync' it implies -> that first we delete the file then we proceed to anything else.
-    console.log(error);
+    //By 'Sync' it implies -> that first we delete the file then we proceed to anything else
   }
 };
 
-export { uploadOnCloudinary };
+export default uploadOnCloudinary;

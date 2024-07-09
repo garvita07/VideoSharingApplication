@@ -9,6 +9,7 @@ class apiError extends Error {
     this.statusCode = statusCode;
     this.success = false;
     this.data = null;
+    this.errors = error;
     if (stack) {
       this.stack = stack;
     } else {
