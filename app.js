@@ -11,15 +11,21 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "16kb" })); // to not have unlimited data coming in json form.
+app.use(express.json({
+  // limit: "16kb"
+})); // to not have unlimited data coming in json form.
 
-app.use(express.urlencoded({extended : true, limit :'16kb' }))//urlencoder -> convrts the special characters present in the URL into either %20 or +.
+app.use(express.urlencoded({
+  extended: true,
+  // limit: '16kb'
+}))//urlencoder -> converts the special characters present in the URL into either %20 or +.
 // extended : true -> it allows us to send an object inside an object.
 
 app.use(express.static("public")); //where to store files in our server.
 
-/*******ROUTES******/
-//import
+app.use(cookieParser());
+
+//import Routes 
 import userRouter from "./src/routes/user.routes.js";
 
 //config:

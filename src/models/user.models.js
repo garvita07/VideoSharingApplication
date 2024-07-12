@@ -48,9 +48,6 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
-    accessToken: {
-      type: String,
-    }
   },
   { timestamps: true }
 );
@@ -59,14 +56,16 @@ const userSchema = new Schema(
 userSchema.pre("save", async function (next) {
   //we dont use arrow functions because we need the context ie, this.
   if (this.isModified("password")) {
-    this.password = bcrypt.hash(this.password, 10);
+    console.log("YOOO");
+    this.password = await bcrypt.hash(this.password, 10);
+    console.log(this.password);
   }
   next();
 });
 
 // this schema file now has access to a bunch of objects -> methods is one of them. We can add any new method as a property to this objects.
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password); // password is the current entry from the user and this.password is whzt was stored in db.
+  return await bcrypt.compare(password, this.password); // password is the current entry from the user and this.password is what was stored in db.
 };
 
 userSchema.methods.generateAccessToken = async function () {
