@@ -3,6 +3,7 @@ import apiError from "../utils/apiError.js";
 import { User } from "../models/user.models.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import apiResponse from "../utils/apiResponse.js";
+import jwt from "jsonwebtoken";
 
 const registerUser = asyncHandler(async (req, res) => {
   //TAKING VALUES FROM CLIENT:
@@ -115,7 +116,6 @@ const loginUser = asyncHandler(async (req, res) => {
   //save in db
   await userExists.save({ validateBeforeSave: false }); //all the fields that have not been provided they will not be saved again, only what is provided will be saved.
 
-  console.log(userExists);
   const LoggedInUser = await User.findById(userExists._id).select(
     "-password -refreshToken"
   );
@@ -193,4 +193,122 @@ const changePassword = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, newUserCreds, "Password Changed Successfully."));
 });
 
-export { registerUser, loginUser, logoutUser, changePassword };
+const requestAcccessToken = asyncHandler(async (req, res) => {
+  const token =
+    req.cookies?.refreshToken ||
+    req.header("authorization")?.replace("bearer ", "");
+
+  // jwt.verify is used to authenticate the token, if it is a valid token and that it has not been tampered with.
+  // once a token has been authenticated it will provide all the parameters for that user.
+  const isTokenValid = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+  if (!isTokenValid) {
+    throw new apiError(404, "unauthorized request.");
+  }
+
+  const user = await User.findById(isTokenValid._id);
+
+  if (token != user?.refreshToken) {
+    // we need to check this ourselves.
+    throw new apiError(404, "RefreshToken is invalid.");
+  }
+
+  const accessToken = await user.generateAccessToken();
+
+  const refreshToken = await user.generateRefreshToken(); //if we need refreshToken only then should we create one.
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  res
+    .status(500)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new apiResponse(404, {}, " New access token created."));
+});
+
+// const subcribers = asyncHandler((req, res) => {
+//   const subscriber = req.users._id;
+//   const channel = req.body._id;
+// });
+// const userProfile = asyncHandler((req, res) => {
+//   req.user._id;
+// });
+
+const getCurrentUser = asyncHandler((req, res) => {
+  res.status(200).json(new apiResponse(200, req.user, "user details fetched."));
+});
+
+const updateProfile = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  if (
+    [fullName, email].some((fields) => {
+      fields?.trim() === "";
+    })
+  ) {
+    throw new apiError("All fields are required.");
+  }
+
+  const avatarLocalPath = req.files?.avatar[0]?.path;
+  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+  let avatar = null;
+  let coverImage = null;
+
+  if (avatarLocalPath) {
+    avatar = await uploadOnCloudinary(avatarLocalPath);
+  } else {
+    throw new apiError(
+      500,
+      error.message || " Failed to upload the Avatar to the cloud."
+    );
+  }
+
+  if (coverImageLocalPath) {
+    coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  } else {
+    throw new apiError(
+      500,
+      error.message || " Failed to upload the Cover Image to the cloud."
+    );
+  }
+
+  const userUpdated = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        fullName,
+        email,
+        avatar: avatar?.url || req.user.avatar, //we cant already declare a avatar variable with the current url of it and then here if the new avatar doesnt come,
+        //it will not automatically be update with the previous one.We will get undefined value.
+        coverImage: coverImage?.url || req.user.coverImage,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  console.log(userUpdated);
+  if (!userUpdated) {
+    throw new apiError(500, "failed to update the user data.");
+  }
+  res
+    .status(200)
+    .json(
+      new apiResponse(200, userUpdated, "user details updated successfully.")
+    );
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  changePassword,
+  requestAcccessToken,
+  getCurrentUser,
+  updateProfile,
+};
